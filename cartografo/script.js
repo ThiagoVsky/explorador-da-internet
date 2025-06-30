@@ -250,8 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             interaction: { tooltipDelay: 100, hideEdgesOnDrag: true, navigationButtons: false },
             groups: {
-                explorer: { shape: 'star', color: { background: '#f59e0b', border: '#d97706' }, size: MAX_NODE_SIZE },
-                target: { shape: 'triangle', color: { background: '#ef4444', border: '#dc2626' }, size: MAX_NODE_SIZE },
+                explorer: { shape: 'star', color: { background: '#f59e0b', border: '#d97706' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
+                target: { shape: 'triangle', color: { background: '#ef4444', border: '#dc2626' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
                 hop: { shape: 'dot', color: { background: '#6366f1', border: '#4f46e5' }, size: 15 },
                 phantom: { shape: 'dot', color: { background: '#6b7280', border: '#4b5563' }, size: 10 }
             }
@@ -345,10 +345,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (scale > ZOOM_CONFIG.SCALING_STOP_ZOOM) {
                 // Pseudo-zoom: aumenta o espaço entre os nós
                 network.setOptions({ physics: { barnesHut: { springLength: 200 * scale } } });
-                newSize = ZOOM_CONFIG.MAX_NODE_SIZE;
+                newSize = ZOOM_CONFIG.MAX_NODE_SIZE; // Corrected reference
             } else {
                  network.setOptions({ physics: { barnesHut: { springLength: 200 } } });
-                 const baseSize = (node.group === 'explorer' || node.group === 'target') ? ZOOM_CONFIG.MAX_NODE_SIZE : 15;
+                 const baseSize = (node.group === 'explorer' || node.group === 'target') ? ZOOM_CONFIG.MAX_NODE_SIZE : 15; // Corrected reference
                  newSize = Math.max(ZOOM_CONFIG.MIN_NODE_SIZE, baseSize * Math.pow(scale, 0.5));
             }
 
