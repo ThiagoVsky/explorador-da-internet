@@ -31,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         SCALING_STOP_ZOOM: 1.8,    
     };
 
+    const CARTOGRAPHER_VERSION = "0.6.9";
+
     // --- Lógica de Upload e Processamento ---
     function setupUploadArea() {
         fileUpload.addEventListener('change', (e) => handleFiles(e.target.files));
@@ -53,6 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getMajorMinorVersion(version) {
+        if (typeof version !== 'string') return null;
+        const parts = version.split('.');
+        if (parts.length < 2) return null;
+        return `${parts[0]}.${parts[1]}`;
+    }
+
     function processFile(file) {
         uploadArea.classList.add('hidden');
         mapContainer.classList.remove('hidden');
@@ -65,9 +74,24 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (e) => {
             try {
                 let graphData = JSON.parse(e.target.result);
-                if (!graphData.file_version || parseFloat(graphData.file_version) < 0.6) {
-                    graphData = migrateData(graphData);
+
+                const fileVersion = graphData.file_version || '0.0';
+                const cartographerMajorMinor = getMajorMinorVersion(CARTOGRAPHER_VERSION);
+                const fileMajorMinor = getMajorMinorVersion(fileVersion);
+
+                if (parseFloat(fileVersion) < 0.6) {
+                    if (confirm(`O arquivo (${fileVersion}) é de uma versão muito antiga. Deseja tentar migrá-lo para a versão ${CARTOGRAPHER_VERSION}?`)) {
+                        graphData = migrateData(graphData);
+                    } else {
+                        location.reload();
+                        return;
+                    }
+                } else if (cartographerMajorMinor !== fileMajorMinor) {
+                    alert(`Incompatibilidade de Versão!\n\nO Cartógrafo (v${CARTOGRAPHER_VERSION}) não pode abrir este arquivo (v${fileVersion}).\n\nUse o Explorador v${cartographerMajorMinor}.x para gerar um arquivo compatível.`);
+                    location.reload();
+                    return;
                 }
+                
                 const loadedData = loadGraphData(graphData);
                 allNodes = loadedData.nodes;
                 allEdges = loadedData.edges;
