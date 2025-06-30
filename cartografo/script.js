@@ -57,42 +57,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function processFile(file) {
+        // Esconde a área de upload e exibe a área do mapa e o overlay de carregamento.
         uploadArea.classList.add('hidden');
         mapContainer.classList.remove('hidden');
-        mapContainer.style.display = 'flex';
-        loadingOverlay.style.display = 'flex';
-        loadingTitle.textContent = "Analisando Topologia...";
-        progressBar.style.width = '10%';
+        mapContainer.style.display = 'flex'; // Garante que o container do mapa seja flexível.
+        loadingOverlay.style.display = 'flex'; // Exibe o overlay de carregamento.
+        loadingTitle.textContent = "Analisando Topologia..."; // Define o título inicial do carregamento.
+        progressBar.style.width = '10%'; // Define um progresso inicial para a barra.
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
+        const reader = new FileReader(); // Cria um leitor de arquivos.
+        reader.onload = (e) => { // Callback executado quando o arquivo é carregado.
             try {
-                let graphData = JSON.parse(e.target.result);
-                const fileVersion = graphData.file_version || '0.0';
+                let graphData = JSON.parse(e.target.result); // Tenta parsear o conteúdo do arquivo como JSON.
+                const fileVersion = graphData.file_version || '0.0'; // Obtém a versão do arquivo, ou '0.0' se não definida.
 
+                // Lógica de verificação de versão e migração.
+                // CARTOGRAPHER_COMPATIBILITY define a versão base mínima que o cartógrafo suporta diretamente.
                 if (parseFloat(fileVersion) < parseFloat(CARTOGRAPHER_COMPATIBILITY)) {
+                    // Se a versão do arquivo for mais antiga que a compatibilidade base.
                     if (confirm(`O arquivo (v${fileVersion}) é de uma versão antiga. Deseja tentar migrá-lo para um formato compatível?`)) {
-                        graphData = migrateData(graphData);
+                        graphData = migrateData(graphData); // Tenta migrar os dados para a versão atual.
                     } else {
-                        location.reload();
+                        location.reload(); // Recarrega a página se o usuário cancelar a migração.
                         return;
                     }
                 } else if (parseInt(fileVersion.split('.')[0], 10) > parseInt(CARTOGRAPHER_COMPATIBILITY.split('.')[0], 10)) {
+                    // Se a versão MAJOR do arquivo for mais nova que a versão MAJOR de compatibilidade do cartógrafo.
+                    // Ex: Arquivo v1.0, Cartógrafo compatível com v0.x.
                     alert(`Incompatibilidade de Versão!\n\nO Cartógrafo (v${CARTOGRAPHER_VERSION}) não pode abrir este arquivo (v${fileVersion}) de uma versão futura.`);
-                    location.reload();
+                    location.reload(); // Recarrega a página.
                     return;
                 }
                 
+                // Carrega os dados do grafo (nós e arestas) a partir do objeto JSON (original ou migrado).
                 const loadedData = loadGraphData(graphData);
-                allNodes = loadedData.nodes;
-                allEdges = loadedData.edges;
+                allNodes = loadedData.nodes; // Armazena os nós processados globalmente.
+                allEdges = loadedData.edges; // Armazena as arestas processadas globalmente.
                 graphMetadata = loadedData.meta;
 
                 fileInfoSpan.textContent = `v${graphMetadata.version} (${new Date(graphMetadata.timestamp).toLocaleString()})`;
                 drawGraph();
             } catch (error) {
-                console.error("Erro fatal:", error);
-                alert('Erro ao analisar o arquivo .graph.');
+                console.error("Erro fatal ao processar o arquivo .graph:", error);
+                let errorMessage = 'Erro ao analisar o arquivo .graph.\n\n';
+                errorMessage += `Detalhes: ${error.message}\n\n`;
+                if (error.stack) {
+                    errorMessage += `Stack Trace (parcial):\n${error.stack.substring(0, 300)}...`;
+                }
+                alert(errorMessage);
                 location.reload();
             }
         };
@@ -100,35 +112,94 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Lógica de Dados ---
+    /**
+     * Tenta migrar dados de um formato de arquivo antigo para um formato compatível com a versão atual do cartógrafo.
+     * Esta função é chamada se a versão do arquivo carregado for anterior à `CARTOGRAPHER_COMPATIBILITY`.
+     * @param {object} oldData - Os dados do arquivo .graph no formato antigo.
+     * @returns {object} Os dados transformados para o formato novo/compatível.
+     */
     function migrateData(oldData) {
+        // IMPORTANTE: Esta função de migração é um exemplo e pode precisar de ajustes
+        // detalhados dependendo das diferenças entre as versões do formato do arquivo.
+        // O objetivo é transformar 'oldData' na estrutura esperada por 'loadGraphData'.
+        console.log("Tentando migrar dados da versão:", oldData.file_version);
         return {
-            file_version: "0.6.9",
-            nodes: (typeof oldData.nodes === 'object' && !Array.isArray(oldData.nodes)) ? Object.values(oldData.nodes) : (oldData.nodes || []),
-            edges: (typeof oldData.edges === 'object' && !Array.isArray(oldData.edges)) ? Object.values(oldData.edges).map(e => { if(!e.from || !e.to) {[e.from, e.to] = e.id.split('-',2);}; return e;}) : (oldData.edges || []),
-            explorers: oldData.explorers || {},
-            timestamp: oldData.timestamp || new Date().toISOString()
+            // Ao migrar, atualiza a versão do arquivo para a versão de compatibilidade do cartógrafo atual,
+            // ou para uma versão específica se a migração for para um formato intermediário.
+            // No 'requisitos.md', ER05 menciona "Conversão automática v0.5+ para v0.6+".
+            // Se CARTOGRAPHER_COMPATIBILITY é "0.6", então migrar para "0.6" é o correto.
+            // A versão "0.6.9" aqui parecia ser um valor hardcoded que poderia ser desalinhado.
+            // Usar CARTOGRAPHER_COMPATIBILITY garante que a migração visa a versão que `loadGraphData` espera.
+            file_version: CARTOGRAPHER_COMPATIBILITY,
+            nodes: (typeof oldData.nodes === 'object' && !Array.isArray(oldData.nodes))
+                   ? Object.values(oldData.nodes) // Converte de objeto para array, se necessário.
+                   : (oldData.nodes || []), // Garante que seja um array ou um array vazio.
+            edges: (typeof oldData.edges === 'object' && !Array.isArray(oldData.edges))
+                   ? Object.values(oldData.edges).map(e => {
+                       // Lógica de exemplo para corrigir arestas que podem ter 'from'/'to' em um campo 'id'.
+                       if(!e.from || !e.to && e.id && typeof e.id === 'string' && e.id.includes('-')) {
+                           const parts = e.id.split('-',2);
+                           e.from = parts[0];
+                           e.to = parts[1];
+                       }
+                       return e;
+                     })
+                   : (oldData.edges || []), // Garante que seja um array ou um array vazio.
+            explorers: oldData.explorers || {}, // Mantém os exploradores, se existirem.
+            timestamp: oldData.timestamp || new Date().toISOString() // Mantém ou define um novo timestamp.
         };
     }
 
+    /**
+     * Processa os dados brutos do arquivo .graph (após JSON.parse e possível migração)
+     * e os transforma na estrutura interna que a visualização usará (dicionários de nós e arestas).
+     * @param {object} graphData - Os dados do grafo como lidos do arquivo (ou migrados),
+     *                             espera-se que `graphData.nodes` e `graphData.edges` sejam arrays.
+     * @returns {object} Um objeto contendo 'nodes' (dicionário), 'edges' (dicionário) e 'meta' informações.
+     */
     function loadGraphData(graphData) {
-        const nodes = {};
-        const edges = {};
-        graphData.nodes.forEach(node => {
+        const nodes = {}; // Dicionário para armazenar nós, usando ID como chave para acesso rápido.
+        const edges = {}; // Dicionário para armazenar arestas, usando uma chave composta.
+
+        (graphData.nodes || []).forEach(node => { // Itera sobre o array de nós.
+            if (!node.id) { // Pula nós sem ID, pois são essenciais para a estrutura do grafo.
+                console.warn("Nó encontrado sem ID no arquivo, será ignorado:", node);
+                return; // Continua para o próximo nó.
+            }
+            // Lógica para determinar o grupo (tipo) do nó se não estiver explicitamente definido.
+            // Isso é crucial para a correta estilização e comportamento do nó na visualização.
             if (!node.group) {
                 if (node.id.startsWith("phantom")) node.group = "phantom";
-                else if (node.label.includes("Explorador")) node.group = "explorer";
-                else if (node.label.includes("Alvo")) node.group = "target";
-                else node.group = "hop";
+                else if (node.label && typeof node.label === 'string' && node.label.includes("Explorador")) node.group = "explorer";
+                else if (node.label && typeof node.label === 'string' && node.label.includes("Alvo")) node.group = "target";
+                else node.group = "hop"; // Define como 'hop' por padrão se nenhuma outra condição for atendida.
             }
-            nodes[node.id] = node;
+            nodes[node.id] = node; // Adiciona o nó ao dicionário de nós.
         });
-        graphData.edges.forEach(edge => {
+
+        (graphData.edges || []).forEach(edge => { // Itera sobre o array de arestas.
+            if (!edge.from || !edge.to) { // Pula arestas sem 'from' ou 'to' definidos, pois são inválidas.
+                console.warn("Aresta encontrada sem 'from' ou 'to' no arquivo, será ignorada:", edge);
+                return; // Continua para a próxima aresta.
+            }
+            // Cria uma chave única para a aresta para evitar duplicatas e facilitar a busca/atualização.
+            // O 'label' da aresta (protocolo/porta) é incluído na chave se existir.
             const key = `${edge.from}-${edge.to}-${edge.label || 'conn'}`;
-            if (!edge.latencies) edge.latencies = [];
+            if (!edge.latencies) edge.latencies = []; // Garante que 'latencies' seja sempre um array.
+            // Calcula a latência média para a aresta. Se não houver amostras de latência, a média é 0.
             edge.avg_latency = edge.latencies.length > 0 ? edge.latencies.reduce((a, b) => a + b, 0) / edge.latencies.length : 0;
-            edges[key] = edge;
+            edges[key] = edge; // Adiciona a aresta ao dicionário de arestas.
         });
-        return { nodes, edges, meta: { version: graphData.file_version, timestamp: graphData.timestamp }};
+
+        // Retorna os dicionários de nós e arestas processados, e metadados do grafo.
+        return {
+            nodes,
+            edges,
+            meta: {
+                version: graphData.file_version || CARTOGRAPHER_COMPATIBILITY, // Usa a versão do arquivo ou a de compatibilidade.
+                timestamp: graphData.timestamp || new Date().toISOString() // Usa o timestamp do arquivo ou o atual.
+            }
+        };
     }
 
     // --- Lógica de Visualização (vis.js) ---
