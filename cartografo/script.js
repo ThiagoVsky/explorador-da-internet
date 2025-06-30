@@ -1,3 +1,6 @@
+// Cartógrafo da Internet - v0.6.11
+// Autor: Thiago
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- Referências Globais do DOM ---
@@ -33,6 +36,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const CARTOGRAPHER_VERSION = "0.6.11";
     const CARTOGRAPHER_COMPATIBILITY = "0.6";
+
+    const NODE_COLORS = {
+        explorer: { background: '#FFD700', border: '#DAA520' },
+        target: { background: '#FF0000', border: '#B22222' },
+        hop: { background: '#0000FF', border: '#00008B' },
+        phantom: { background: '#6b7280', border: '#4b5563' }
+    };
 
     // --- Lógica de Upload e Processamento ---
     function setupUploadArea() {
@@ -243,15 +253,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     gravitationalConstant: -40000,
                     springConstant: 0.05,
                     springLength: 200,
-                    avoidOverlap: 0.1
+                    avoidOverlap: 1
                 },
                 stabilization: { iterations: 2500 },
             },
             interaction: { tooltipDelay: 100, hideEdgesOnDrag: true, navigationButtons: false },
             groups: {
-                explorer: { shape: 'star', color: { background: '#fbbf24', border: '#d97706' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
-                target: { shape: 'triangle', color: { background: '#ef4444', border: '#dc2626' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
-                hop: { shape: 'dot', color: { background: '#818cf8', border: '#4f46e5' }, size: 15 },
+                explorer: { shape: 'star', color: { background: '#FFD700', border: '#DAA520' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
+                target: { shape: 'triangle', color: { background: '#FF0000', border: '#B22222' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
+                hop: { shape: 'dot', color: { background: '#0000FF', border: '#00008B' }, size: 15 },
                 phantom: { shape: 'dot', color: { background: '#6b7280', border: '#4b5563' }, size: 10 }
             }
         };
@@ -275,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingOverlay.style.display = 'none'; 
                 loadingOverlay.style.opacity = '1';
             }, 500);
-            networkInstance.setOptions({ physics: false });
             updateLOD(); // Chamar LOD inicial
         });
 
@@ -293,12 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const processZoom = debounce(() => updateLOD(), 100);
         networkInstance.on('zoom', processZoom);
         networkInstance.on('dragEnd', processZoom); // Atualizar LOD após arrastar
-
-        // Controles do mapa
-        document.getElementById('reorganize').addEventListener('click', () => applyAutoLayout());
-        document.getElementById('zoom-in').addEventListener('click', () => networkInstance.moveTo({ scale: networkInstance.getScale() * 1.4, animation: {duration: 300, easingFunction: 'easeOutQuad'} }));
-        document.getElementById('zoom-out').addEventListener('click', () => networkInstance.moveTo({ scale: networkInstance.getScale() * 0.7, animation: {duration: 300, easingFunction: 'easeOutQuad'} }));
-        document.getElementById('fit-to-screen').addEventListener('click', () => networkInstance.fit({ animation: { duration: 800, easingFunction: 'easeInOutQuad' } }));
+        networkInstance.on('afterDrawing', (ctx) => drawISPTerritories(ctx, networkInstance));
     
         // Lógica da barra lateral redimensionável
         const resizeHandle = document.getElementById('resize-handle');
@@ -326,6 +330,29 @@ document.addEventListener('DOMContentLoaded', () => {
         const scale = network.getScale();
         const nodeUpdates = [];
 
+        // Ajusta o springLength e gravitationalConstant para afastar os nós em zooms altos
+        if (scale > ZOOM_CONFIG.SCALING_STOP_ZOOM) {
+            network.setOptions({
+                physics: {
+                    barnesHut: {
+                        springLength: 200 * (scale / ZOOM_CONFIG.SCALING_STOP_ZOOM), // Aumenta o comprimento da mola
+                        gravitationalConstant: -50000, // Reduz a força de atração
+                        centralGravity: 0.0 // Permite que os nós se espalhem mais livremente
+                    }
+                }
+            });
+        } else {
+            network.setOptions({
+                physics: {
+                    barnesHut: {
+                        springLength: 200, // Valor padrão
+                        gravitationalConstant: -40000, // Valor padrão
+                        centralGravity: 0.05 // Valor padrão
+                    }
+                }
+            });
+        }
+
         const view = network.getViewPosition();
         const scaleFactor = network.getScale();
 
@@ -342,16 +369,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Lógica de Tamanho Fixo
             if (scale > ZOOM_CONFIG.SCALING_STOP_ZOOM) {
-                // Pseudo-zoom: aumenta o espaço entre os nós
-                network.setOptions({ physics: { barnesHut: { springLength: 200 * scale } } });
-                newSize = ZOOM_CONFIG.MAX_NODE_SIZE; // Corrected reference
+                newSize = ZOOM_CONFIG.MAX_NODE_SIZE;
             } else {
-                 network.setOptions({ physics: { barnesHut: { springLength: 200 } } });
-                 const baseSize = (node.group === 'explorer' || node.group === 'target') ? ZOOM_CONFIG.MAX_NODE_SIZE : 15; // Corrected reference
+                 const baseSize = (node.group === 'explorer' || node.group === 'target') ? ZOOM_CONFIG.MAX_NODE_SIZE : 15;
                  newSize = Math.max(ZOOM_CONFIG.MIN_NODE_SIZE, baseSize * Math.pow(scale, 0.5));
             }
 
-            nodeUpdates.push({ id: node.id, font: { color: `rgba(255, 255, 255, ${newOpacity})` }, color: { border: `rgba(217, 119, 6, ${newOpacity})`, background: `rgba(245, 158, 11, ${newOpacity})`}, size: newSize });
+            nodeUpdates.push({
+                id: node.id,
+                font: { color: `rgba(255, 255, 255, ${newOpacity})` },
+                color: {
+                    background: `rgba(${parseInt(NODE_COLORS[node.group].background.substring(1, 3), 16)}, ${parseInt(NODE_COLORS[node.group].background.substring(3, 5), 16)}, ${parseInt(NODE_COLORS[node.group].background.substring(5, 7), 16)}, ${newOpacity})`,
+                    border: `rgba(${parseInt(NODE_COLORS[node.group].border.substring(1, 3), 16)}, ${parseInt(NODE_COLORS[node.group].border.substring(3, 5), 16)}, ${parseInt(NODE_COLORS[node.group].border.substring(5, 7), 16)}, ${newOpacity})`
+                },
+                size: newSize
+            });
         });
 
         if (nodeUpdates.length > 0) {
@@ -362,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyAutoLayout() {
         network.setOptions({ physics: true });
         network.once("stabilizationIterationsDone", () => {
-            network.setOptions({ physics: false });
+            
         });
     }
 
@@ -436,6 +468,89 @@ document.addEventListener('DOMContentLoaded', () => {
                     plugins: { legend: { display: false } }
                 }
             });
+        }
+    }
+
+    // Função para calcular o Convex Hull (Andrew's Monotone Chain algorithm)
+    function cross(o, a, b) {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    }
+
+    function convexHull(points) {
+        if (points.length <= 3) return points.sort((a, b) => a.x - b.x || a.y - b.y);
+
+        points.sort((a, b) => a.x - b.x || a.y - b.y);
+
+        const lower = [];
+        for (const p of points) {
+            while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) {
+                lower.pop();
+            }
+            lower.push(p);
+        }
+
+        const upper = [];
+        for (let i = points.length - 1; i >= 0; i--) {
+            const p = points[i];
+            while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) {
+                upper.pop();
+            }
+            upper.push(p);
+        }
+
+        upper.pop();
+        lower.pop();
+        return lower.concat(upper);
+    }
+
+    function drawISPTerritories(ctx, networkInstance) {
+        const ispGroups = {};
+        nodesDataSet.forEach(node => {
+            const isp = allNodes[node.id]?.geo_info?.isp;
+            if (isp) {
+                if (!ispGroups[isp]) {
+                    ispGroups[isp] = [];
+                }
+                const canvasPos = networkInstance.canvas.canvasViewAndModule.canvas.DOMtoCanvas({ x: node.x, y: node.y });
+                ispGroups[isp].push(canvasPos);
+            }
+        });
+
+        const scale = networkInstance.getScale();
+        const minZoomForTerritories = 0.8; // CI03: Visíveis em zoom <0.8x
+
+        if (scale < minZoomForTerritories) {
+            for (const isp in ispGroups) {
+                const points = ispGroups[isp];
+                if (points.length > 2) { // Precisa de pelo menos 3 pontos para um polígono
+                    const hull = convexHull(points);
+
+                    ctx.beginPath();
+                    ctx.moveTo(hull[0].x, hull[0].y);
+                    for (let i = 1; i < hull.length; i++) {
+                        ctx.lineTo(hull[i].x, hull[i].y);
+                    }
+                    ctx.closePath();
+
+                    // Estilo do território
+                    ctx.fillStyle = `rgba(75, 192, 192, ${0.15 * (1 - (scale / minZoomForTerritories))})`; // Cor ciano com opacidade baseada no zoom
+                    ctx.strokeStyle = `rgba(75, 192, 192, ${0.5 * (1 - (scale / minZoomForTerritories))})`; // Borda ciano com opacidade
+                    ctx.lineWidth = 2;
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Desenhar o nome do ISP no centro do território
+                    const centroid = hull.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+                    centroid.x /= hull.length;
+                    centroid.y /= hull.length;
+
+                    ctx.font = `${16 / scale}px Arial`; // Tamanho da fonte ajustado pelo zoom
+                    ctx.fillStyle = `rgba(255, 255, 255, ${0.8 * (1 - (scale / minZoomForTerritories))})`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(isp, centroid.x, centroid.y);
+                }
+            }
         }
     }
 
