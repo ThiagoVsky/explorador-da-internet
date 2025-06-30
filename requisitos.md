@@ -164,7 +164,7 @@ graph TD
 
 | Versão | Funcionalidades | Entrega |
 |--------|----------------|---------|
-| v0.6.9 | Correções de estabilidade | Imediata |
+| v0.6.9 | Correções de estabilidade, UX aprimorado | Imediata |
 | v0.7.0 | Histórico de conexões, exportação PNG | 30 dias |
 | v0.8.0 | Análise de gargalos, multi-threading | 60 dias |
 | v1.0 | Banco de dados integrado | 90 dias |

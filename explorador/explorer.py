@@ -39,7 +39,7 @@ except ImportError:
 # -----------------------------------------------------------
 
 ARQUIVO_DE_SAIDA = "grafo_da_rede.graph"
-SCRIPT_VERSION = "0.6"
+SCRIPT_VERSION = "0.6.9"
 API_DELAY = 1.5
 
 # --- Definição de Funções ---
