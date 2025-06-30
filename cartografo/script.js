@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 stabilization: { iterations: 2500 },
             },
-            interaction: { tooltipDelay: 100, hideEdgesOnDrag: true, navigationButtons: false },
+            interaction: { tooltipDelay: 100, hideEdgesOnDrag: true, navigationButtons: false, zoomView: { max: 5 } },
             groups: {
                 explorer: { shape: 'star', color: { background: '#FFD700', border: '#DAA520' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
                 target: { shape: 'triangle', color: { background: '#FF0000', border: '#B22222' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyAutoLayout() {
         network.setOptions({ physics: true });
         network.once("stabilizationIterationsDone", () => {
-            
+            updateLOD(); // Chamar LOD inicial
         });
     }
 
