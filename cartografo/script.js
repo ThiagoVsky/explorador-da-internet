@@ -31,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         SCALING_STOP_ZOOM: 1.8,    
     };
 
-    const CARTOGRAPHER_VERSION = "0.6.9";
+    const CARTOGRAPHER_VERSION = "0.6.10";
+    const CARTOGRAPHER_COMPATIBILITY = "0.6";
 
     // --- Lógica de Upload e Processamento ---
     function setupUploadArea() {
@@ -55,13 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function getMajorMinorVersion(version) {
-        if (typeof version !== 'string') return null;
-        const parts = version.split('.');
-        if (parts.length < 2) return null;
-        return `${parts[0]}.${parts[1]}`;
-    }
-
     function processFile(file) {
         uploadArea.classList.add('hidden');
         mapContainer.classList.remove('hidden');
@@ -74,20 +68,17 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.onload = (e) => {
             try {
                 let graphData = JSON.parse(e.target.result);
-
                 const fileVersion = graphData.file_version || '0.0';
-                const cartographerMajorMinor = getMajorMinorVersion(CARTOGRAPHER_VERSION);
-                const fileMajorMinor = getMajorMinorVersion(fileVersion);
 
-                if (parseFloat(fileVersion) < 0.6) {
-                    if (confirm(`O arquivo (${fileVersion}) é de uma versão muito antiga. Deseja tentar migrá-lo para a versão ${CARTOGRAPHER_VERSION}?`)) {
+                if (parseFloat(fileVersion) < parseFloat(CARTOGRAPHER_COMPATIBILITY)) {
+                    if (confirm(`O arquivo (v${fileVersion}) é de uma versão antiga. Deseja tentar migrá-lo para um formato compatível?`)) {
                         graphData = migrateData(graphData);
                     } else {
                         location.reload();
                         return;
                     }
-                } else if (cartographerMajorMinor !== fileMajorMinor) {
-                    alert(`Incompatibilidade de Versão!\n\nO Cartógrafo (v${CARTOGRAPHER_VERSION}) não pode abrir este arquivo (v${fileVersion}).\n\nUse o Explorador v${cartographerMajorMinor}.x para gerar um arquivo compatível.`);
+                } else if (parseInt(fileVersion.split('.')[0], 10) > parseInt(CARTOGRAPHER_COMPATIBILITY.split('.')[0], 10)) {
+                    alert(`Incompatibilidade de Versão!\n\nO Cartógrafo (v${CARTOGRAPHER_VERSION}) não pode abrir este arquivo (v${fileVersion}) de uma versão futura.`);
                     location.reload();
                     return;
                 }
