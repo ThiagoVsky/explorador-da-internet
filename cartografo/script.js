@@ -99,12 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 drawGraph();
             } catch (error) {
                 console.error("Erro fatal ao processar o arquivo .graph:", error);
-                let errorMessage = 'Erro ao analisar o arquivo .graph.\n\n';
-                errorMessage += `Detalhes: ${error.message}\n\n`;
+                console.error("Detalhes do erro:", error.message);
                 if (error.stack) {
-                    errorMessage += `Stack Trace (parcial):\n${error.stack.substring(0, 300)}...`;
+                    console.error("Stack Trace:", error.stack);
                 }
-                alert(errorMessage);
+                alert('Ocorreu um erro ao processar o arquivo .graph. Verifique o console do navegador para mais detalhes.');
                 location.reload();
             }
         };
