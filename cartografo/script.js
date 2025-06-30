@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (error.stack) {
                     console.error("Stack Trace:", error.stack);
                 }
-                alert('Ocorreu um erro ao processar o arquivo .graph. Verifique o console do navegador para mais detalhes.');
+                alert('Houve um erro! Verifique o console'); // Changed alert message
                 location.reload();
             }
         };
