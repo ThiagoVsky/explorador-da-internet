@@ -145,6 +145,11 @@ def carregar_grafo():
     return {"nodes": {}, "edges": {}, "explorers": {}, "file_version": SCRIPT_VERSION}
 
 def salvar_grafo(data):
+    # Calcula a latência média para cada aresta antes de salvar
+    for edge in data['edges'].values():
+        if edge.get('latencies'):
+            edge['avg_latency'] = sum(edge['latencies']) / len(edge['latencies'])
+
     graph_data = {
         "file_version": SCRIPT_VERSION,
         "nodes": list(data['nodes'].values()),
@@ -209,6 +214,16 @@ def get_user_input():
             if porta.strip().isdigit():
                 tarefas.append((f"TCP:{porta.strip()}", f"-T -p {porta.strip()} -q {num_queries}"))
     return [alvo.strip() for alvo in alvos if alvo], tarefas
+
+def gerar_relatorio(data, alvos):
+    print("\n--- Relatório da Execução ---")
+    print(f"- Versão do Script: {SCRIPT_VERSION}")
+    print(f"- Arquivo do Grafo: {ARQUIVO_DE_SAIDA}")
+    print(f"- Total de Nós no Grafo: {len(data['nodes'])}")
+    print(f"- Total de Arestas no Grafo: {len(data['edges'])}")
+    if alvos:
+        print(f"- Alvos Explorados nesta Sessão: {', '.join(alvos)}")
+    print("---------------------------")
 
 # --- Função Principal ---
 def main():
@@ -301,6 +316,7 @@ def main():
             node['label'] = f"🎯 {original_label}"
 
     salvar_grafo(data)
+    gerar_relatorio(data, alvos)
     print("\nPara catalogar novos sites ou IPs, execute o script novamente.")
 
 if __name__ == "__main__":

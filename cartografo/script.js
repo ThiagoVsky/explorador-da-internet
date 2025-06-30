@@ -229,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('zoom-in').addEventListener('click', () => networkInstance.moveTo({ scale: networkInstance.getScale() * 1.4, animation: {duration: 300, easingFunction: 'easeOutQuad'} }));
         document.getElementById('zoom-out').addEventListener('click', () => networkInstance.moveTo({ scale: networkInstance.getScale() * 0.7, animation: {duration: 300, easingFunction: 'easeOutQuad'} }));
         document.getElementById('fit-to-screen').addEventListener('click', () => networkInstance.fit({ animation: { duration: 800, easingFunction: 'easeInOutQuad' } }));
+        document.getElementById('export-png').addEventListener('click', () => exportNetworkAsPNG());
     
         // Lógica da barra lateral redimensionável
         const resizeHandle = document.getElementById('resize-handle');
@@ -300,12 +301,12 @@ document.addEventListener('DOMContentLoaded', () => {
         infoTitle.textContent = `Detalhes do Nó`;
         let geoHtml = '<tr><td colspan="2" class="text-gray-500">Não há informações de geolocalização para este nó.</td></tr>';
         if (node.geo_info && node.geo_info.status === "success") {
+            const geo = node.geo_info;
+            const locationHierarchy = [geo.district, geo.city, geo.regionName, geo.country].filter(Boolean).join(', ');
             geoHtml = `
-                <tr><th>País</th><td>${node.geo_info.country || 'N/A'}</td></tr>
-                <tr><th>Região</th><td>${node.geo_info.regionName || 'N/A'}</td></tr>
-                <tr><th>Cidade</th><td>${node.geo_info.city || 'N/A'}</td></tr>
-                <tr><th>Provedor</th><td>${node.geo_info.isp || 'N/A'}</td></tr>
-                <tr><th>Coordenadas</th><td>${node.geo_info.lat || 'N/A'}, ${node.geo_info.lon || 'N/A'}</td></tr>
+                <tr><th>Localização</th><td>${locationHierarchy}</td></tr>
+                <tr><th>Provedor</th><td>${geo.isp || 'N/A'}</td></tr>
+                <tr><th>Coordenadas</th><td>${geo.lat || 'N/A'}, ${geo.lon || 'N/A'}</td></tr>
             `;
         }
         infoContent.innerHTML = `
@@ -375,6 +376,14 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(timer);
             timer = setTimeout(() => { func.apply(this, args); }, timeout);
         };
+    }
+
+    function exportNetworkAsPNG() {
+        const canvas = networkContainer.getElementsByTagName('canvas')[0];
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL("image/png");
+        a.download = `cartografo_da_internet_${new Date().toISOString()}.png`;
+        a.click();
     }
 
     // --- Inicialização ---
