@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         SCALING_STOP_ZOOM: 1.8,    
     };
 
-    const CARTOGRAPHER_VERSION = "0.6.10";
+    const CARTOGRAPHER_VERSION = "0.6.11";
     const CARTOGRAPHER_COMPATIBILITY = "0.6";
 
     // --- Lógica de Upload e Processamento ---
@@ -249,9 +249,9 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             interaction: { tooltipDelay: 100, hideEdgesOnDrag: true, navigationButtons: false },
             groups: {
-                explorer: { shape: 'star', color: { background: '#f59e0b', border: '#d97706' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
+                explorer: { shape: 'star', color: { background: '#fbbf24', border: '#d97706' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
                 target: { shape: 'triangle', color: { background: '#ef4444', border: '#dc2626' }, size: ZOOM_CONFIG.MAX_NODE_SIZE },
-                hop: { shape: 'dot', color: { background: '#6366f1', border: '#4f46e5' }, size: 15 },
+                hop: { shape: 'dot', color: { background: '#818cf8', border: '#4f46e5' }, size: 15 },
                 phantom: { shape: 'dot', color: { background: '#6b7280', border: '#4b5563' }, size: 10 }
             }
         };
