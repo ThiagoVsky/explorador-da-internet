@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DetailsPanel</class>
+ <widget class="QDockWidget" name="DetailsPanel">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>300</width>
+    <height>400</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Detalhes</string>
+  </property>
+  <widget class="QWidget" name="dockWidgetContents">
+   <!-- O conteúdo (QScrollArea com QVBoxLayout e widgets) é configurado no .cpp -->
+   <!-- Um QVBoxLayout simples pode ser adicionado aqui se preferir,
+        e depois preenchido no .cpp.
+   <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QLabel" name="placeholderLabel">
+       <property name="text">
+        <string>Selecione um item no mapa para ver os detalhes.</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+    -->
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
